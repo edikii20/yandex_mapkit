@@ -37,7 +37,6 @@ class ClusterizedPlacemarkCollectionController:
   public func update(_ params: [String: Any]) {
     updatePlacemarks(params["placemarks"] as! [String: Any])
     clusterizedPlacemarkCollection.isVisible = (params["isVisible"] as! NSNumber).boolValue
-    clusterizedPlacemarkCollection.setVisible((params["isVisible"] as! NSNumber).boolValue, Animation(Animation.Type.LINEAR, 0.0), null)
     clusterizedPlacemarkCollection.clusterPlacemarks(
       withClusterRadius: (params["radius"] as! NSNumber).doubleValue,
       minZoom: (params["minZoom"] as! NSNumber).uintValue
