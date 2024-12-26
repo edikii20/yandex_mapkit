@@ -41,6 +41,7 @@ class ClusterizedPlacemarkCollectionController:
       withClusterRadius: (params["radius"] as! NSNumber).doubleValue,
       minZoom: (params["minZoom"] as! NSNumber).uintValue
     )
+    clusterizedPlacemarkCollection.setVisibleWithVisible((params["isVisible"] as! NSNumber).boolValue, animation: YMKAnimation(type: YMKAnimationType.linear, duration: 0.0))
     print("YANDEX update temp completed")
     consumeTapEvents = (params["consumeTapEvents"] as! NSNumber).boolValue
   }
