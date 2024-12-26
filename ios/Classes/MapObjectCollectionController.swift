@@ -294,6 +294,8 @@ class MapObjectCollectionController: NSObject, MapObjectController, YMKMapObject
 
     removeClusterizedPlacemarkCollection(params)
 
+    tempParams["isVisible"] = true
+
     clusterizedPlacemarkCollections["\(id)_temp"]?.update(tempParams)
   }
 
