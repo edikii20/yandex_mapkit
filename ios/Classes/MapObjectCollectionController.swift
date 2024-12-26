@@ -291,10 +291,14 @@ class MapObjectCollectionController: NSObject, MapObjectController, YMKMapObject
     tempParams["isVisible"] = false
 
     addClusterizedPlacemarkCollection(tempParams)
+    print("YANDEX ddClusterizedPlacemarkCollection temp")
 
     removeClusterizedPlacemarkCollection(params)
+    print("YANDEX removeClusterizedPlacemarkCollection temp")
 
     tempParams["isVisible"] = true
+
+    print("YANDEX update temp")
 
     clusterizedPlacemarkCollections["\(id)_temp"]?.update(tempParams)
   }

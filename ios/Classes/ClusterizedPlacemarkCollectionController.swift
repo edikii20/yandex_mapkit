@@ -41,7 +41,7 @@ class ClusterizedPlacemarkCollectionController:
       withClusterRadius: (params["radius"] as! NSNumber).doubleValue,
       minZoom: (params["minZoom"] as! NSNumber).uintValue
     )
-
+    print("YANDEX update temp completed")
     consumeTapEvents = (params["consumeTapEvents"] as! NSNumber).boolValue
   }
 
