@@ -286,11 +286,11 @@ class MapObjectCollectionController: NSObject, MapObjectController, YMKMapObject
 
   private func changeClusterizedPlacemarkCollection(_ params: [String: Any]) {
     let id = params["id"] as! String
-    var tempParams = params
-    tempParams["id"] =  "\(id)_temp"
-    tempParams["isVisible"] = false
+    // var tempParams = params
+    // tempParams["id"] =  "\(id)_temp"
+    // tempParams["isVisible"] = false
 
-    addClusterizedPlacemarkCollection(tempParams)
+    // addClusterizedPlacemarkCollection(tempParams)
 
     removeClusterizedPlacemarkCollection(params)
 
