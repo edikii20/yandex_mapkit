@@ -7,6 +7,8 @@ import com.yandex.mapkit.geometry.Point;
 import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectCollection;
 import com.yandex.mapkit.map.MapObjectTapListener;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -336,8 +338,8 @@ public class MapObjectCollectionController extends MapObjectController implement
   private void changeClusterizedPlacemarkCollectionWithOutAnimation(Map<String, Object> params) {
     String id = (String) params.get("id");
     Map<String, Object> tempParams = clusterizedPlacemarkCollections.get(id).getParams();
-    params.put("isVisible",0);
-    tempParams.put("isVisible",0);
+    params.put("isVisible",false);
+    tempParams.put("isVisible",false);
     tempParams.put("clusterPlacemarks",false);
 
     ClusterizedPlacemarkCollectionController colController = new ClusterizedPlacemarkCollectionController(
@@ -348,17 +350,15 @@ public class MapObjectCollectionController extends MapObjectController implement
 
     colController.update(params);
 
-    new Thread(() -> {
-      try {
-        Thread.sleep(180);
+    Handler handler = new Handler(Looper.getMainLooper());
+
+    Runnable task = () -> {
         removeClusterizedPlacemarkCollection(params);
         this.clusterizedPlacemarkCollections.put(colController.id, colController);
         colController.clusterizedPlacemarkCollection.setVisible(true,new Animation(Animation.Type.LINEAR, 0.0f), null);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }).start();
+    };
 
+    handler.postDelayed(task, 180);
   }
 
   private void removeClusterizedPlacemarkCollection(Map<String, Object> params) {
