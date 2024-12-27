@@ -80,7 +80,7 @@ public class ClusterizedPlacemarkCollectionController
     result.put("consumeTapEvents",consumeTapEvents);
     result.put("isVisible",clusterizedPlacemarkCollection.isVisible());
     result.put("type","ClusterizedPlacemarkCollection");
-    result.put("radius",radius);
+    result.put("radius",(double) radius);
     result.put("minZoom",minZoom);
     ArrayList<ArrayList<Map<String, Object>>> placemarks = new ArrayList<ArrayList<Map<String, Object>>>();
     ArrayList<Map<String, Object>> toChange = new ArrayList<Map<String, Object>>();
