@@ -35,6 +35,7 @@ public class PlacemarkMapObjectController
   private boolean consumeTapEvents = false;
   private final WeakReference<YandexMapController> controller;
   public final String id;
+  public Map<String, Object> params;
 
   @SuppressWarnings({"unchecked", "ConstantConditions"})
   public PlacemarkMapObjectController(
@@ -57,6 +58,7 @@ public class PlacemarkMapObjectController
     this.id = (String) params.get("id");
     this.controller = controller;
     this.internallyControlled = false;
+    this.params = params;
 
     placemark.setUserData(id);
     placemark.addTapListener(this);
@@ -73,6 +75,7 @@ public class PlacemarkMapObjectController
     this.id = (String) params.get("id");
     this.controller = controller;
     this.internallyControlled = true;
+    this.params = params;
 
     placemark.setUserData(id);
     placemark.addTapListener(this);
@@ -95,6 +98,7 @@ public class PlacemarkMapObjectController
     setIcon(((Map<String, Object>) params.get("icon")));
 
     consumeTapEvents = (Boolean) params.get("consumeTapEvents");
+    this.params = params;
   }
 
   public void remove() {

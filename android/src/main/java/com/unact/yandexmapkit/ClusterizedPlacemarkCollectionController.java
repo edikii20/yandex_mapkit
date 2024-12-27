@@ -34,6 +34,8 @@ public class ClusterizedPlacemarkCollectionController
   @SuppressWarnings({"UnusedDeclaration", "FieldCanBeLocal"})
   private final WeakReference<YandexMapController> controller;
   public final String id;
+  public float radius;
+  public int minZoom;
 
   public ClusterizedPlacemarkCollectionController(
     MapObjectCollection parent,
@@ -46,22 +48,52 @@ public class ClusterizedPlacemarkCollectionController
     this.clusterizedPlacemarkCollection = clusterizedPlacemarkCollection;
     this.id = (String) params.get("id");
     this.controller = controller;
+    this.radius = ((Double) params.get("radius")).floatValue();
+    this.minZoom = ((Number) params.get("minZoom")).intValue();
 
     clusterizedPlacemarkCollection.setUserData(this.id);
     clusterizedPlacemarkCollection.addTapListener(this);
     update(params);
   }
 
+  //modified method
   @SuppressWarnings({"unchecked", "ConstantConditions"})
   public void update(Map<String, Object> params) {
+    this.radius = ((Double) params.get("radius")).floatValue();
+    this.minZoom = ((Number) params.get("minZoom")).intValue();
     updatePlacemarks((Map<String, Object>) params.get("placemarks"));
     clusterizedPlacemarkCollection.setVisible((Boolean) params.get("isVisible"));
-    clusterizedPlacemarkCollection.clusterPlacemarks(
-      ((Double) params.get("radius")).floatValue(),
-      ((Number) params.get("minZoom")).intValue()
-    );
+    final boolean clusterPlacemarks = !Boolean.FALSE.equals(params.get("clusterPlacemarks"));
+    if (clusterPlacemarks) {
+      clusterizedPlacemarkCollection.clusterPlacemarks(radius,minZoom);
+    }
 
     consumeTapEvents = (Boolean) params.get("consumeTapEvents");
+  }
+
+
+  //modified method
+  public Map<String, Object> getParams() {
+    Map<String, Object> result = new HashMap<String, Object>();
+    result.put("zIndex",clusterizedPlacemarkCollection.getZIndex());
+    result.put("id",id);
+    result.put("consumeTapEvents",consumeTapEvents);
+    result.put("isVisible",clusterizedPlacemarkCollection.isVisible());
+    result.put("type","ClusterizedPlacemarkCollection");
+    result.put("radius",radius);
+    result.put("minZoom",minZoom);
+    ArrayList<ArrayList<Map<String, Object>>> placemarks = new ArrayList<ArrayList<Map<String, Object>>>();
+    ArrayList<Map<String, Object>> toChange = new ArrayList<Map<String, Object>>();
+    ArrayList<Map<String, Object>> toRemove = new ArrayList<Map<String, Object>>();
+    ArrayList<Map<String, Object>> toAdd = new ArrayList<Map<String, Object>>();
+    placemarks.add(toChange);
+    placemarks.add(toRemove);
+    for (PlacemarkMapObjectController value : this.placemarks.values()) {
+      toAdd.add(value.params);
+    }
+    placemarks.add(toAdd);
+    result.put("placemarks",placemarks);
+    return result;
   }
 
   public void remove() {

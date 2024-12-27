@@ -2,6 +2,7 @@ package com.unact.yandexmapkit;
 
 import androidx.annotation.NonNull;
 
+import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.geometry.Point;
 import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectCollection;
@@ -148,6 +149,11 @@ public class MapObjectCollectionController extends MapObjectController implement
           changePolyline(el);
           break;
         case "ClusterizedPlacemarkCollection":
+          if (!Boolean.FALSE.equals(el.get("updateWithAnimation"))){
+            changeClusterizedPlacemarkCollection(el);
+          }else{
+            changeClusterizedPlacemarkCollectionWithOutAnimation(el);
+          }
           changeClusterizedPlacemarkCollection(el);
           break;
         default:
@@ -324,6 +330,35 @@ public class MapObjectCollectionController extends MapObjectController implement
     ClusterizedPlacemarkCollectionController colController = clusterizedPlacemarkCollections.get(id);
 
     if (colController != null) colController.update(params);
+  }
+
+  //modified method
+  private void changeClusterizedPlacemarkCollectionWithOutAnimation(Map<String, Object> params) {
+    String id = (String) params.get("id");
+    Map<String, Object> tempParams = clusterizedPlacemarkCollections.get(id).getParams();
+    params.put("isVisible",0);
+    tempParams.put("isVisible",0);
+    tempParams.put("clusterPlacemarks",false);
+
+    ClusterizedPlacemarkCollectionController colController = new ClusterizedPlacemarkCollectionController(
+            mapObjectCollection,
+            tempParams,
+            controller
+    );
+
+    colController.update(params);
+
+    new Thread(() -> {
+      try {
+        Thread.sleep(180);
+        this.removeClusterizedPlacemarkCollection(params);
+        this.clusterizedPlacemarkCollections.put(colController.id, colController);
+        colController.clusterizedPlacemarkCollection.setVisible(true,Animation(Animation.Type.LINEAR, 0.0f), null);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }).start();
+
   }
 
   private void removeClusterizedPlacemarkCollection(Map<String, Object> params) {
