@@ -82,7 +82,7 @@ public class ClusterizedPlacemarkCollectionController
     result.put("type","ClusterizedPlacemarkCollection");
     result.put("radius",(double) radius);
     result.put("minZoom",minZoom);
-    Map<ArrayList<Map<String, Object>>> placemarks = new HashMap<ArrayList<Map<String, Object>>>();
+    Map<String, ArrayList<Map<String, Object>>> placemarks = new HashMap<String, ArrayList<Map<String, Object>>>();
     ArrayList<Map<String, Object>> toChange = new ArrayList<Map<String, Object>>();
     ArrayList<Map<String, Object>> toRemove = new ArrayList<Map<String, Object>>();
     ArrayList<Map<String, Object>> toAdd = new ArrayList<Map<String, Object>>();
