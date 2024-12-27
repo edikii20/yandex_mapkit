@@ -351,9 +351,9 @@ public class MapObjectCollectionController extends MapObjectController implement
     new Thread(() -> {
       try {
         Thread.sleep(180);
-        this.removeClusterizedPlacemarkCollection(params);
+        removeClusterizedPlacemarkCollection(params);
         this.clusterizedPlacemarkCollections.put(colController.id, colController);
-        colController.clusterizedPlacemarkCollection.setVisible(true,Animation(Animation.Type.LINEAR, 0.0f), null);
+        colController.clusterizedPlacemarkCollection.setVisible(true,new Animation(Animation.Type.LINEAR, 0.0f), null);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
