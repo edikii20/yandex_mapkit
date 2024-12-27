@@ -17,6 +17,8 @@ class ClusterizedPlacemarkCollectionController:
   private var consumeTapEvents: Bool = false
   public weak var controller: YandexMapController?
   public let id: String
+  public var radius: Double
+  public var minZoom: UInt
 
   public required init(
     parent: YMKMapObjectCollection,
@@ -26,7 +28,8 @@ class ClusterizedPlacemarkCollectionController:
     self.id = params["id"] as! String
     self.controller = controller
     self.parent = parent
-
+    self.radius = (params["radius"] as! NSNumber).doubleValue
+    self.minZoom = (params["minZoom"] as! NSNumber).uintValue
     super.init()
 
     clusterizedPlacemarkCollection.userData = self.id
@@ -34,16 +37,21 @@ class ClusterizedPlacemarkCollectionController:
     update(params)
   }
 
+  //modified method
   public func update(_ params: [String: Any]) {
+    self.radius = (params["radius"] as! NSNumber).doubleValue
+    self.minZoom = (params["minZoom"] as! NSNumber).uintValue
     updatePlacemarks(params["placemarks"] as! [String: Any])
     clusterizedPlacemarkCollection.isVisible = (params["isVisible"] as! NSNumber).boolValue
-    clusterizedPlacemarkCollection.clusterPlacemarks(
-      withClusterRadius: (params["radius"] as! NSNumber).doubleValue,
-      minZoom: (params["minZoom"] as! NSNumber).uintValue
-    )
-    clusterizedPlacemarkCollection.setVisibleWithVisible((params["isVisible"] as! NSNumber).boolValue, animation: YMKAnimation(type: YMKAnimationType.linear, duration: 0.0))
-    print("YANDEX update temp completed")
+    let clusterPlacemarks = (params["clusterPlacemarks"] as? Bool) ?? true
+      if clusterPlacemarks {
+          clusterizedPlacemarkCollection.clusterPlacemarks(
+            withClusterRadius: radius,
+            minZoom: minZoom
+          )
+      }
     consumeTapEvents = (params["consumeTapEvents"] as! NSNumber).boolValue
+    
   }
 
   public func remove() {
@@ -111,6 +119,25 @@ class ClusterizedPlacemarkCollectionController:
 
     controller!.methodChannel.invokeMethod("onClustersRemoved", arguments: arguments)
   }
+    
+    //modified method
+    public func getParams() -> [String: Any]{
+        return ["zIndex": clusterizedPlacemarkCollection.zIndex, 
+                "id": id,
+                "consumeTapEvents": consumeTapEvents ? 1:0,
+                "isVisible": clusterizedPlacemarkCollection.isVisible ? 1:0,
+                "type": "ClusterizedPlacemarkCollection",
+                "radius": radius,
+                "minZoom":minZoom,
+                "placemarks":[
+                    "toChange": [],
+                    "toRemove": [],
+                    "toAdd":placemarks.map({ (key: String, value: PlacemarkMapObjectController) in
+                        value.params
+                        }),
+                ],
+        ]
+    }
 
   internal func onClusterAdded(with cluster: YMKCluster) {
     clusterCnt += 1

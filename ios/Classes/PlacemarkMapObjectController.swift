@@ -11,6 +11,7 @@ class PlacemarkMapObjectController:
   private var consumeTapEvents: Bool = false
   public weak var controller: YandexMapController?
   public let id: String
+  public var params: [String: Any]
 
   public required init(
     parent: YMKBaseMapObjectCollection,
@@ -32,7 +33,8 @@ class PlacemarkMapObjectController:
     self.id = params["id"] as! String
     self.controller = controller
     self.internallyControlled = false
-
+    self.params = params
+      
     super.init()
 
     placemark!.userData = self.id
@@ -50,7 +52,7 @@ class PlacemarkMapObjectController:
     self.id = params["id"] as! String
     self.controller = controller
     self.internallyControlled = true
-
+    self.params = params
     super.init()
 
     placemark.userData = self.id
@@ -74,6 +76,7 @@ class PlacemarkMapObjectController:
     setIcon(params["icon"] as? [String: Any])
 
     consumeTapEvents = (params["consumeTapEvents"] as! NSNumber).boolValue
+    self.params = params
   }
 
   public func remove() {

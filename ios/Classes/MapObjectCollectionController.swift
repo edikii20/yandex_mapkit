@@ -123,7 +123,11 @@ class MapObjectCollectionController: NSObject, MapObjectController, YMKMapObject
         changePolyline(el)
         break
       case "ClusterizedPlacemarkCollection":
-        changeClusterizedPlacemarkCollection(el)
+          if el["updateWithAnimation"] as? Bool ?? true {
+              changeClusterizedPlacemarkCollection(el)
+          }else{
+              changeClusterizedPlacemarkCollectionWithOutAnimation(el)
+          }
         break
       default:
         break
@@ -283,24 +287,44 @@ class MapObjectCollectionController: NSObject, MapObjectController, YMKMapObject
     clusterizedPlacemarkCollections[clusterizedPlacemarkCollectionController.id] =
       clusterizedPlacemarkCollectionController
   }
+    
+    
 
   private func changeClusterizedPlacemarkCollection(_ params: [String: Any]) {
     let id = params["id"] as! String
-    var tempParams = params
-    tempParams["id"] =  "\(id)_temp"
-    tempParams["isVisible"] = false
 
-    addClusterizedPlacemarkCollection(tempParams)
-    print("YANDEX ddClusterizedPlacemarkCollection temp")
+    clusterizedPlacemarkCollections[id]?.update(params)
+  }
 
-    removeClusterizedPlacemarkCollection(params)
-    print("YANDEX removeClusterizedPlacemarkCollection temp")
+  //modified method
+  private func changeClusterizedPlacemarkCollectionWithOutAnimation(_ params: [String: Any]) {
+    let id = params["id"] as! String
+    var tempParams = clusterizedPlacemarkCollections[id]!.getParams()
+    var newParams = params
+      
+    newParams["isVisible"] = 0
+    tempParams["isVisible"] = 0
+    tempParams["clusterPlacemarks"] = false
+      
+    let clusterizedPlacemarkCollectionController = ClusterizedPlacemarkCollectionController(
+        parent: mapObjectCollection,
+        params: tempParams,
+        controller: controller!
+      )
+      
+    clusterizedPlacemarkCollectionController.update(newParams)
+      
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+          guard let strongSelf = self else { return }
+          
+          strongSelf.removeClusterizedPlacemarkCollection(params)
 
-    tempParams["isVisible"] = true
-
-    print("YANDEX update temp")
-
-    clusterizedPlacemarkCollections["\(id)_temp"]?.update(tempParams)
+          strongSelf.clusterizedPlacemarkCollections[clusterizedPlacemarkCollectionController.id] =
+            clusterizedPlacemarkCollectionController
+          
+          clusterizedPlacemarkCollectionController.clusterizedPlacemarkCollection.setVisibleWithVisible(true, animation: YMKAnimation(type: YMKAnimationType.linear, duration: 0.0))
+          
+      }
   }
 
   private func removeClusterizedPlacemarkCollection(_ params: [String: Any]) {

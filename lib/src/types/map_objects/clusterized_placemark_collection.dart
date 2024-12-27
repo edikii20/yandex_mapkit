@@ -17,11 +17,12 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
     this.onClusterAdded,
     this.onClusterTap,
     this.consumeTapEvents = false,
-    this.isVisible = true
-  }) : placemarks = List.unmodifiable(placemarks.groupFoldBy<MapObjectId, PlacemarkMapObject>(
-      (element) => element.mapId,
-      (previous, element) => element
-    ).values);
+    this.isVisible = true,
+    this.updateWithAnimation = true,
+  }) : placemarks = List.unmodifiable(placemarks
+            .groupFoldBy<MapObjectId, PlacemarkMapObject>(
+                (element) => element.mapId, (previous, element) => element)
+            .values);
 
   /// List of [PlacemarkMapObject] eligible for clusterization.
   ///
@@ -61,6 +62,9 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
   /// If not, the map will propagate tap events to other map objects at the point of tap.
   final bool consumeTapEvents;
 
+  //Reveal animation
+  final bool updateWithAnimation;
+
   /// Creates a modified copy.
   ///
   /// Specified fields will get the specified value, all other fields will get
@@ -74,7 +78,8 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
     ClusterCallback? onClusterAdded,
     ClusterCallback? onClusterTap,
     bool? consumeTapEvents,
-    bool? isVisible
+    bool? isVisible,
+    bool? updateWithAnimation,
   }) {
     return ClusterizedPlacemarkCollection(
       mapId: mapId,
@@ -86,7 +91,8 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
       onClusterAdded: onClusterAdded ?? this.onClusterAdded,
       onClusterTap: onClusterTap ?? this.onClusterTap,
       consumeTapEvents: consumeTapEvents ?? this.consumeTapEvents,
-      isVisible: isVisible ?? this.isVisible
+      isVisible: isVisible ?? this.isVisible,
+      updateWithAnimation: updateWithAnimation ?? this.updateWithAnimation,
     );
   }
 
@@ -122,7 +128,8 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
       onClusterAdded: onClusterAdded,
       onClusterTap: onClusterTap,
       consumeTapEvents: consumeTapEvents,
-      isVisible: isVisible
+      isVisible: isVisible,
+      updateWithAnimation: updateWithAnimation,
     );
   }
 
@@ -160,7 +167,9 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
       'id': mapId.value,
       'radius': radius,
       'minZoom': minZoom,
-      'placemarks': placemarks.map((PlacemarkMapObject p) => p.toJson()).toList(),
+      'updateWithAnimation': updateWithAnimation,
+      'placemarks':
+          placemarks.map((PlacemarkMapObject p) => p.toJson()).toList(),
       'zIndex': zIndex,
       'consumeTapEvents': consumeTapEvents,
       'isVisible': isVisible
@@ -169,44 +178,48 @@ class ClusterizedPlacemarkCollection extends Equatable implements MapObject {
 
   @override
   Map<String, dynamic> _createJson() {
-    return toJson()..addAll({
-      'type': _kType,
-      'placemarks': MapObjectUpdates.from(
-        const <PlacemarkMapObject>{...[]},
-        placemarks.toSet()
-      ).toJson()
-    });
+    return toJson()
+      ..addAll({
+        'type': _kType,
+        'updateWithAnimation': updateWithAnimation,
+        'placemarks': MapObjectUpdates.from(
+                const <PlacemarkMapObject>{...[]}, placemarks.toSet())
+            .toJson()
+      });
   }
 
   @override
   Map<String, dynamic> _updateJson(MapObject previous) {
     assert(mapId == previous.mapId);
 
-    return toJson()..addAll({
-      'type': _kType,
-      'placemarks': MapObjectUpdates.from(
-        (previous as ClusterizedPlacemarkCollection).placemarks.toSet(),
-        placemarks.toSet()
-      ).toJson()
-    });
+    return toJson()
+      ..addAll({
+        'type': _kType,
+        'updateWithAnimation': updateWithAnimation,
+        'placemarks': MapObjectUpdates.from(
+                (previous as ClusterizedPlacemarkCollection).placemarks.toSet(),
+                placemarks.toSet())
+            .toJson()
+      });
   }
 
   @override
   Map<String, dynamic> _removeJson() {
     return {
       'id': mapId.value,
-      'type': _kType
+      'type': _kType,
+      'updateWithAnimation': updateWithAnimation,
     };
   }
 
   @override
   List<Object> get props => <Object>[
-    mapId,
-    placemarks,
-    zIndex,
-    consumeTapEvents,
-    isVisible,
-  ];
+        mapId,
+        placemarks,
+        zIndex,
+        consumeTapEvents,
+        isVisible,
+      ];
 
   @override
   bool get stringify => true;
