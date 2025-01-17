@@ -615,7 +615,8 @@ public class YandexMapController:
     let arguments: [String: Any?] = [
       "cameraPosition": UtilsLite.cameraPositionToJson(cameraPosition),
       "reason": cameraUpdateReason.rawValue,
-      "finished": finished
+      "finished": finished,
+      "visibleRegion": Utils.visibleRegionToJson(map.visibleRegion(with: cameraPosition)),
     ]
     methodChannel.invokeMethod("onCameraPositionChanged", arguments: arguments)
   }
