@@ -1,4 +1,4 @@
-def variant = project.hasProperty("yandexMapkit.variant") ? project.property("yandexMapkit.variant") : "lite"
+def variant = project.hasProperty("yandexMapkit.variant") ? project.property("yandexMapkit.variant") : "full"
 def init = "new com.unact.yandexmapkit." + variant + ".Init" + variant.capitalize() + "()"
 
 group 'com.unact.yandexmapkit'
