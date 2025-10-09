@@ -220,7 +220,7 @@ public class YandexMapController implements
     Map<String, Object> anchor = (Map<String, Object>) params.get("anchor");
 
     userLocationLayer.setVisible((Boolean) params.get("visible"));
-    userLocationLayer.setHeadingEnabled((Boolean) params.get("headingEnabled"));
+    userLocationLayer.setHeadingModeActive((Boolean) params.get("headingEnabled"));
     userLocationLayer.setAutoZoomEnabled((Boolean) params.get("autoZoomEnabled"));
     userLocationLayer.resetAnchor();
 
@@ -255,7 +255,7 @@ public class YandexMapController implements
         (String) params.get("objectId"),
         (String) params.get("dataSourceName"),
         (String) params.get("layerId"),
-        (Long) params.get("groupId")
+        ((Number) params.get("groupId")).longValue()
       )
     );
   }
