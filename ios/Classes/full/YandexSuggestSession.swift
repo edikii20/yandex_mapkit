@@ -76,6 +76,20 @@ public class YandexSuggestSession: NSObject {
 
   private func onSuccess(_ res: YMKSuggestResponse, _ result: @escaping FlutterResult) {
     let items = res.items.map { (suggestItem) -> [String: Any?] in
+      let properties: [[String: Any]] = (suggestItem.value(forKey: "properties") as? [Any] ?? []).compactMap { rawProperty in
+        // YMKSuggestItemProperty is an Obj-C class; we use KVC to stay
+        // compatible across MapKit minor versions where the swift name
+        // of the property accessor sometimes changes.
+        let propertyObject = rawProperty as AnyObject
+        guard
+          let key = propertyObject.value(forKey: "name") as? String
+            ?? propertyObject.value(forKey: "key") as? String,
+          let value = propertyObject.value(forKey: "value") as? String
+        else {
+          return nil
+        }
+        return ["key": key, "value": value]
+      }
       return [
         "title": suggestItem.title.text,
         "subtitle": suggestItem.subtitle?.text,
@@ -83,7 +97,8 @@ public class YandexSuggestSession: NSObject {
         "searchText": suggestItem.searchText,
         "type": suggestItem.type.rawValue,
         "tags": suggestItem.tags,
-        "center": suggestItem.center != nil ? UtilsFull.pointToJson(suggestItem.center!) : nil
+        "center": suggestItem.center != nil ? UtilsFull.pointToJson(suggestItem.center!) : nil,
+        "properties": properties
       ]
     }
 

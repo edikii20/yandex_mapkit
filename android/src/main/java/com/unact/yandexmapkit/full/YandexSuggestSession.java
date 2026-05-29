@@ -104,6 +104,42 @@ public class YandexSuggestSession implements MethodChannel.MethodCallHandler {
       suggestMap.put("tags", item.getTags());
       suggestMap.put("center", item.getCenter() != null ? UtilsFull.pointToJson(item.getCenter()) : null);
 
+      List<Map<String, String>> propertiesList = new ArrayList<>();
+      try {
+        // SuggestItem.getProperties() was added in YandexMapsMobile 4.x.
+        // Reflection keeps the plugin source compatible if the method is
+        // absent in a particular SDK build.
+        Object propsResult = SuggestItem.class.getMethod("getProperties").invoke(item);
+        if (propsResult instanceof List) {
+          for (Object prop : (List<?>) propsResult) {
+            String key = null;
+            String value = null;
+            try {
+              Object k = prop.getClass().getMethod("getKey").invoke(prop);
+              if (k instanceof String) key = (String) k;
+            } catch (NoSuchMethodException ignored) {
+              try {
+                Object k = prop.getClass().getMethod("getName").invoke(prop);
+                if (k instanceof String) key = (String) k;
+              } catch (NoSuchMethodException ignored2) {}
+            }
+            try {
+              Object v = prop.getClass().getMethod("getValue").invoke(prop);
+              if (v instanceof String) value = (String) v;
+            } catch (NoSuchMethodException ignored) {}
+            if (key != null && value != null) {
+              Map<String, String> propMap = new HashMap<>();
+              propMap.put("key", key);
+              propMap.put("value", value);
+              propertiesList.add(propMap);
+            }
+          }
+        }
+      } catch (Exception ignored) {
+        // SDK doesn't expose properties — fine, leave the list empty.
+      }
+      suggestMap.put("properties", propertiesList);
+
       suggests.add(suggestMap);
     }
 

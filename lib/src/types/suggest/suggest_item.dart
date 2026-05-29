@@ -1,5 +1,33 @@
 part of '../../../yandex_mapkit.dart';
 
+/// A single key/value structured property of a suggest item.
+///
+/// Native MapKit exposes them via `SuggestItem.properties`. For TOPONYM
+/// suggests common keys are `house`, `entrance`, `building`, `block`,
+/// `apartment`, `floor` etc. — the value is the concrete number/text.
+class SuggestItemProperty extends Equatable {
+  const SuggestItemProperty({
+    required this.key,
+    required this.value,
+  });
+
+  factory SuggestItemProperty._fromJson(Map<dynamic, dynamic> json) {
+    return SuggestItemProperty(
+      key: json['key'] as String,
+      value: json['value'] as String,
+    );
+  }
+
+  final String key;
+  final String value;
+
+  @override
+  List<Object?> get props => <Object?>[key, value];
+
+  @override
+  bool get stringify => true;
+}
+
 /// A single suggested item.
 class SuggestItem extends Equatable {
   const SuggestItem._({
@@ -9,10 +37,12 @@ class SuggestItem extends Equatable {
     required this.searchText,
     required this.type,
     required this.tags,
-    required this.center
+    required this.center,
+    required this.properties,
   });
 
   factory SuggestItem._fromJson(Map<dynamic, dynamic> json) {
+    final rawProperties = json['properties'];
     return SuggestItem._(
       title: json['title'],
       subtitle: json['subtitle'],
@@ -20,7 +50,12 @@ class SuggestItem extends Equatable {
       searchText: json['searchText'],
       type: SuggestItemType.values[json['type']],
       tags: (json['tags'] as List<Object?>).cast<String>(),
-      center: json['center'] != null ? Point._fromJson(json['center']) : null
+      center: json['center'] != null ? Point._fromJson(json['center']) : null,
+      properties: rawProperties is List
+          ? rawProperties
+              .map((e) => SuggestItemProperty._fromJson(e as Map))
+              .toList()
+          : const <SuggestItemProperty>[],
     );
   }
 
@@ -49,6 +84,10 @@ class SuggestItem extends Equatable {
   /// Position of object.
   final Point? center;
 
+  /// Structured key/value properties of the suggest item
+  /// (see [SuggestItemProperty]).
+  final List<SuggestItemProperty> properties;
+
   @override
   List<Object?> get props => <Object?>[
     title,
@@ -56,7 +95,8 @@ class SuggestItem extends Equatable {
     searchText,
     type,
     tags,
-    center
+    center,
+    properties,
   ];
 
   @override
