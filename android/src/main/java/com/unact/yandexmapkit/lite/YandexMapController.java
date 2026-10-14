@@ -30,6 +30,8 @@ import com.yandex.mapkit.logo.VerticalAlignment;
 import com.yandex.mapkit.map.CameraPosition;
 import com.yandex.mapkit.map.GeoObjectSelectionMetadata;
 import com.yandex.mapkit.map.InputListener;
+import com.yandex.mapkit.map.MapLoadStatistics;
+import com.yandex.mapkit.map.MapLoadedListener;
 import com.yandex.mapkit.map.MapType;
 import com.yandex.mapkit.map.PointOfView;
 import com.yandex.mapkit.map.CameraUpdateReason;
@@ -82,6 +84,8 @@ public class YandexMapController implements
   private final MapObjectCollectionController rootController;
   private boolean disposed = false;
   private MethodChannel.Result initResult;
+  @SuppressWarnings({"FieldCanBeLocal"})
+  private MapLoadedListener mapLoadedListener;
 
   @SuppressWarnings({"unchecked", "ConstantConditions", "InflateParams"})
   public YandexMapController(
@@ -192,10 +196,38 @@ public class YandexMapController implements
         deselectGeoObject();
         result.success(null);
         break;
+      case "listenMapLoaded":
+        listenMapLoaded();
+        result.success(null);
+        break;
       default:
         result.notImplemented();
         break;
     }
+  }
+
+  public void listenMapLoaded() {
+    mapLoadedListener = this::onMapLoaded;
+    mapView.getMapWindow().getMap().setMapLoadedListener(mapLoadedListener);
+  }
+
+  private void onMapLoaded(@NonNull MapLoadStatistics statistics) {
+    if (disposed) {
+      return;
+    }
+
+    Map<String, Object> arguments = new HashMap<>();
+    arguments.put("curZoomGeometryLoaded", statistics.getCurZoomGeometryLoaded());
+    arguments.put("curZoomPlacemarksLoaded", statistics.getCurZoomPlacemarksLoaded());
+    arguments.put("curZoomLabelsLoaded", statistics.getCurZoomLabelsLoaded());
+    arguments.put("delayedGeometryLoaded", statistics.getDelayedGeometryLoaded());
+    arguments.put("curZoomModelsLoaded", statistics.getCurZoomModelsLoaded());
+    arguments.put("fullyLoaded", statistics.getFullyLoaded());
+    arguments.put("fullyAppeared", statistics.getFullyAppeared());
+    arguments.put("renderObjectCount", statistics.getRenderObjectCount());
+    arguments.put("tileMemoryUsage", statistics.getTileMemoryUsage());
+
+    methodChannel.invokeMethod("onMapLoaded", arguments);
   }
 
   @SuppressWarnings({"unchecked"})

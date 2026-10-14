@@ -38,6 +38,7 @@ part 'src/types/driving/driving_session.dart';
 part 'src/types/localized_value.dart';
 part 'src/types/map_alignment.dart';
 part 'src/types/map_animation.dart';
+part 'src/types/map_load_statistics.dart';
 part 'src/types/map_objects/circle_map_object.dart';
 part 'src/types/map_objects/clusterized_placemark_collection.dart';
 part 'src/types/map_objects/map_object_collection.dart';

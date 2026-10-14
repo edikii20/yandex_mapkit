@@ -28,6 +28,7 @@ public class YandexMapController:
     )
   }()
   private let mapView: FLYMKMapView
+  private var mapLoadedListener: MapLoadedListener?
 
   public required init(id: Int64, frame: CGRect, registrar: FlutterPluginRegistrar, params: [String: Any]) {
     self.pluginRegistrar = registrar
@@ -100,6 +101,9 @@ public class YandexMapController:
       result(nil)
     case "deselectGeoObject":
       deselectGeoObject()
+      result(nil)
+    case "listenMapLoaded":
+      listenMapLoaded()
       result(nil)
     default:
       result(FlutterMethodNotImplemented)
@@ -610,6 +614,28 @@ public class YandexMapController:
     methodChannel.invokeMethod("onMapLongTap", arguments: arguments)
   }
 
+  public func listenMapLoaded() {
+    weak var weakSelf = self
+    let listener = MapLoadedListener(onLoaded: { weakSelf?.onMapLoaded($0) })
+    mapLoadedListener = listener
+    mapView.mapWindow.map.setMapLoadedListenerWith(listener)
+  }
+
+  private func onMapLoaded(_ statistics: YMKMapLoadStatistics) {
+    let arguments: [String: Any] = [
+      "curZoomGeometryLoaded": Int(statistics.curZoomGeometryLoaded * 1000),
+      "curZoomPlacemarksLoaded": Int(statistics.curZoomPlacemarksLoaded * 1000),
+      "curZoomLabelsLoaded": Int(statistics.curZoomLabelsLoaded * 1000),
+      "delayedGeometryLoaded": Int(statistics.delayedGeometryLoaded * 1000),
+      "curZoomModelsLoaded": Int(statistics.curZoomModelsLoaded * 1000),
+      "fullyLoaded": Int(statistics.fullyLoaded * 1000),
+      "fullyAppeared": Int(statistics.fullyAppeared * 1000),
+      "renderObjectCount": statistics.renderObjectCount,
+      "tileMemoryUsage": statistics.tileMemoryUsage,
+    ]
+    methodChannel.invokeMethod("onMapLoaded", arguments: arguments)
+  }
+
   public func onCameraPositionChanged(
     with map: YMKMap,
     cameraPosition: YMKCameraPosition,
@@ -695,5 +721,17 @@ public class YandexMapController:
         }
       }
     }
+  }
+}
+
+private class MapLoadedListener: NSObject, YMKMapLoadedListener {
+  private let onLoaded: (YMKMapLoadStatistics) -> Void
+
+  init(onLoaded: @escaping (YMKMapLoadStatistics) -> Void) {
+    self.onLoaded = onLoaded
+  }
+
+  func onMapLoaded(with statistics: YMKMapLoadStatistics) {
+    onLoaded(statistics)
   }
 }

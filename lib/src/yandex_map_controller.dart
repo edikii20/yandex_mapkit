@@ -7,6 +7,7 @@ class YandexMapController extends ChangeNotifier {
 
   final MethodChannel _channel;
   final _YandexMapState _yandexMapState;
+  final _mapLoadedCompleters = <Completer<MapLoadStatistics>>[];
 
   static Future<YandexMapController> _init(
       int id, _YandexMapState yandexMapState) async {
@@ -19,7 +20,15 @@ class YandexMapController extends ChangeNotifier {
   @override
   void dispose() {
     _channel.setMethodCallHandler(null);
+    _mapLoadedCompleters.clear();
     super.dispose();
+  }
+
+  Future<MapLoadStatistics> waitForMapLoaded() async {
+    final completer = Completer<MapLoadStatistics>();
+    _mapLoadedCompleters.add(completer);
+    await _channel.invokeMethod('listenMapLoaded');
+    return completer.future;
   }
 
   /// Toggles current user location layer
@@ -200,6 +209,8 @@ class YandexMapController extends ChangeNotifier {
         return await _onUserLocationAdded(call.arguments);
       case 'onCameraPositionChanged':
         return _onCameraPositionChanged(call.arguments);
+      case 'onMapLoaded':
+        return _onMapLoaded(call.arguments);
       default:
         throw MissingPluginException();
     }
@@ -228,6 +239,15 @@ class YandexMapController extends ChangeNotifier {
     }
 
     _yandexMapState.widget.onMapLongTap!(Point._fromJson(arguments['point']));
+  }
+
+  void _onMapLoaded(dynamic arguments) {
+    final statistics = MapLoadStatistics._fromJson(arguments);
+    final completers = List.of(_mapLoadedCompleters);
+    _mapLoadedCompleters.clear();
+    for (final completer in completers) {
+      completer.complete(statistics);
+    }
   }
 
   void _onCameraPositionChanged(dynamic arguments) {
