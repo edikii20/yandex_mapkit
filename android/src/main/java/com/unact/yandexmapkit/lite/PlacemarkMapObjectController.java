@@ -2,9 +2,11 @@ package com.unact.yandexmapkit.lite;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PointF;
 
 import androidx.annotation.NonNull;
 
+import com.yandex.mapkit.ScreenPoint;
 import com.yandex.mapkit.geometry.Point;
 import com.yandex.mapkit.map.BaseMapObjectCollection;
 import com.yandex.mapkit.map.ClusterizedPlacemarkCollection;
@@ -21,6 +23,10 @@ import com.yandex.runtime.image.ImageProvider;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +41,17 @@ public class PlacemarkMapObjectController
   private boolean consumeTapEvents = false;
   private final WeakReference<YandexMapController> controller;
   public final String id;
+  private ImageProvider baseImage;
+  private Map<String, Object> baseStyle;
+  private float baseOpacity = 1;
+  private ImageProvider shownImage;
+  private double animScale = 1;
+  private double animOpacity = 1;
+  private double animOffsetX = 0;
+  private double animOffsetY = 0;
+  private ImageProvider frameImage;
+  private final List<PlacemarkAnimator.Track> tracks = new ArrayList<>();
+  private String transitionId;
 
   @SuppressWarnings({"ConstantConditions"})
   public PlacemarkMapObjectController(
@@ -87,16 +104,23 @@ public class PlacemarkMapObjectController
 
     placemark.setZIndex(((Double) params.get("zIndex")).floatValue());
     placemark.setDraggable((Boolean) params.get("isDraggable"));
-    placemark.setOpacity(((Double) params.get("opacity")).floatValue());
+    baseOpacity = ((Double) params.get("opacity")).floatValue();
     placemark.setDirection(((Double) params.get("direction")).floatValue());
 
     setText(((Map<String, Object>) params.get("text")));
     setIcon(((Map<String, Object>) params.get("icon")));
+    startTransition((Map<String, Object>) params.get("transition"));
+    applyAnimation();
 
     consumeTapEvents = (Boolean) params.get("consumeTapEvents");
   }
 
   public void remove() {
+    YandexMapController mapController = controller.get();
+    if (mapController != null) {
+      mapController.placemarkAnimator.remove(this);
+    }
+
     if (internallyControlled) {
       return;
     }
@@ -116,10 +140,14 @@ public class PlacemarkMapObjectController
       Map<String, Object> style = ((Map<String, Object>) icon.get("style"));
       Map<String, Object> image = ((Map<String, Object>) style.get("image"));
 
-      placemark.setIcon(getIconImage(image), getIconStyle(style));
+      baseImage = getIconImage(image);
+      baseStyle = style;
     }
 
     if (iconType.equals("composite")) {
+      baseImage = null;
+      baseStyle = null;
+      shownImage = null;
       CompositeIcon compositeIcon = placemark.useCompositeIcon();
       List<Map<String, Object>> iconParts = ((List<Map<String, Object>>) icon.get("iconParts"));
 
@@ -170,7 +198,172 @@ public class PlacemarkMapObjectController
       return defaultImage;
     }
 
+    if (type.equals("fromCache")) {
+      ImageProvider cached = controller.get().imageCache.get((String) image.get("key"));
+
+      return cached != null ? cached : defaultImage;
+    }
+
     return defaultImage;
+  }
+
+  @SuppressWarnings({"unchecked"})
+  private void startTransition(Map<String, Object> transition) {
+    if (transition == null) {
+      return;
+    }
+
+    String id = (String) transition.get("id");
+    if (id == null || id.equals(transitionId)) {
+      return;
+    }
+
+    transitionId = id;
+    double now = PlacemarkAnimator.now();
+    List<Map<String, Object>> trackList = (List<Map<String, Object>>) transition.get("tracks");
+
+    if (trackList != null) {
+      Set<Integer> properties = new HashSet<>();
+      for (Map<String, Object> json : trackList) {
+        properties.add(((Number) json.get("property")).intValue());
+      }
+
+      Iterator<PlacemarkAnimator.Track> iterator = tracks.iterator();
+      while (iterator.hasNext()) {
+        if (properties.contains(iterator.next().property)) {
+          iterator.remove();
+        }
+      }
+
+      for (Map<String, Object> json : trackList) {
+        int property = ((Number) json.get("property")).intValue();
+        double current = property == PlacemarkAnimator.SCALE ? animScale : animOpacity;
+        tracks.add(new PlacemarkAnimator.Track(json, now, current, this::getIconImage));
+      }
+    }
+
+    if (!tracks.isEmpty()) {
+      step(now, false);
+      YandexMapController mapController = controller.get();
+      if (mapController != null) {
+        mapController.placemarkAnimator.add(this);
+      }
+    }
+  }
+
+  public boolean step(double now, boolean apply) {
+    Set<Integer> seen = new HashSet<>();
+
+    for (PlacemarkAnimator.Track track : tracks) {
+      boolean isFirst = seen.add(track.property);
+      if (now < track.start && !isFirst) {
+        continue;
+      }
+
+      double p = track.progress(now);
+
+      switch (track.property) {
+        case PlacemarkAnimator.SCALE:
+          animScale = track.from + (track.to - track.from) * p;
+          break;
+        case PlacemarkAnimator.OPACITY:
+          animOpacity = track.from + (track.to - track.from) * p;
+          break;
+        case PlacemarkAnimator.OFFSET:
+          applyOffset(track, p);
+          break;
+        default:
+          if (track.isFinished(now) || track.frames.isEmpty()) {
+            frameImage = null;
+          } else {
+            int index = (int) Math.round(Math.min(1, Math.max(0, p)) * (track.frames.size() - 1));
+            frameImage = track.frames.get(index);
+          }
+      }
+    }
+
+    boolean running = false;
+    Iterator<PlacemarkAnimator.Track> iterator = tracks.iterator();
+    while (iterator.hasNext()) {
+      PlacemarkAnimator.Track track = iterator.next();
+      if (!track.isFinished(now)) {
+        running = true;
+      } else if (!(track.property == PlacemarkAnimator.OFFSET && track.toPoint != null)) {
+        iterator.remove();
+      }
+    }
+
+    if (apply) {
+      applyAnimation();
+    }
+
+    return running;
+  }
+
+  private void applyOffset(PlacemarkAnimator.Track track, double p) {
+    YandexMapController mapController = controller.get();
+    ScreenPoint own = mapController != null ? mapController.screenPoint(placemark.getGeometry()) : null;
+    animOffsetX = 0;
+    animOffsetY = 0;
+
+    if (own == null) {
+      return;
+    }
+
+    if (track.fromPoint != null) {
+      ScreenPoint target = mapController.screenPoint(track.fromPoint);
+      if (target != null) {
+        animOffsetX = (target.getX() - own.getX()) * (1 - p);
+        animOffsetY = (target.getY() - own.getY()) * (1 - p);
+      }
+    } else if (track.toPoint != null) {
+      ScreenPoint target = mapController.screenPoint(track.toPoint);
+      if (target != null) {
+        animOffsetX = (target.getX() - own.getX()) * p;
+        animOffsetY = (target.getY() - own.getY()) * p;
+      }
+    }
+  }
+
+  @SuppressWarnings({"ConstantConditions"})
+  private void applyAnimation() {
+    placemark.setOpacity((float) Math.max(0, Math.min(1, baseOpacity * animOpacity)));
+
+    ImageProvider image = frameImage != null ? frameImage : baseImage;
+    if (image == null || baseStyle == null) {
+      return;
+    }
+
+    IconStyle style = getIconStyle(baseStyle);
+    double scale = Math.max(0.001, (style.getScale() != null ? style.getScale() : 1f) * animScale);
+    style.setScale((float) scale);
+
+    if (animOffsetX != 0 || animOffsetY != 0) {
+      PointF anchor = style.getAnchor() != null ? style.getAnchor() : new PointF(0.5f, 0.5f);
+      int imageWidth;
+      int imageHeight;
+      if (image instanceof CachedImageProvider) {
+        imageWidth = ((CachedImageProvider) image).width;
+        imageHeight = ((CachedImageProvider) image).height;
+      } else {
+        Bitmap bitmap = image.getImage();
+        imageWidth = bitmap.getWidth();
+        imageHeight = bitmap.getHeight();
+      }
+      double width = Math.max(1, imageWidth) * scale;
+      double height = Math.max(1, imageHeight) * scale;
+      style.setAnchor(new PointF(
+        (float) (anchor.x - animOffsetX / width),
+        (float) (anchor.y - animOffsetY / height)
+      ));
+    }
+
+    if (image != shownImage) {
+      placemark.setIcon(image, style);
+      shownImage = image;
+    } else {
+      placemark.setIconStyle(style);
+    }
   }
 
   @SuppressWarnings({"unchecked", "ConstantConditions"})

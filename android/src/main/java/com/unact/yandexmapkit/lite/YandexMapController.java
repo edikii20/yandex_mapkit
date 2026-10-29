@@ -44,6 +44,8 @@ import com.yandex.mapkit.user_location.UserLocationLayer;
 import com.yandex.mapkit.user_location.UserLocationObjectListener;
 import com.yandex.mapkit.user_location.UserLocationView;
 
+import com.yandex.runtime.image.ImageProvider;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,6 +84,8 @@ public class YandexMapController implements
   @SuppressWarnings({"UnusedDeclaration", "FieldCanBeLocal"})
   private CircleMapObjectController userAccuracyCircleController;
   private final MapObjectCollectionController rootController;
+  public final Map<String, ImageProvider> imageCache = new HashMap<>();
+  public final PlacemarkAnimator placemarkAnimator = new PlacemarkAnimator();
   private boolean disposed = false;
   private MethodChannel.Result initResult;
   @SuppressWarnings({"FieldCanBeLocal"})
@@ -172,6 +176,14 @@ public class YandexMapController implements
         break;
       case "getPoint":
         result.success(getPoint(call));
+        break;
+      case "cacheBitmaps":
+        cacheBitmaps(call);
+        result.success(null);
+        break;
+      case "uncacheBitmaps":
+        uncacheBitmaps(call);
+        result.success(null);
         break;
       case "getScreenPoint":
         result.success(getScreenPoint(call));
@@ -307,6 +319,28 @@ public class YandexMapController implements
     }
 
     return null;
+  }
+
+  @SuppressWarnings({"unchecked"})
+  public void cacheBitmaps(MethodCall call) {
+    Map<String, byte[]> images = (Map<String, byte[]>) ((Map<String, Object>) call.arguments).get("images");
+
+    for (Map.Entry<String, byte[]> entry : images.entrySet()) {
+      imageCache.put(entry.getKey(), new CachedImageProvider("cache_" + entry.getKey(), entry.getValue()));
+    }
+  }
+
+  @SuppressWarnings({"unchecked"})
+  public void uncacheBitmaps(MethodCall call) {
+    List<String> keys = (List<String>) ((Map<String, Object>) call.arguments).get("keys");
+
+    for (String key : keys) {
+      imageCache.remove(key);
+    }
+  }
+
+  public ScreenPoint screenPoint(Point point) {
+    return mapView.getMapWindow().worldToScreen(point);
   }
 
   @SuppressWarnings({"unchecked"})
@@ -863,6 +897,7 @@ public class YandexMapController implements
 
     disposed = true;
     methodChannel.setMethodCallHandler(null);
+    placemarkAnimator.stop();
 
     Lifecycle lifecycle = lifecycleProvider.getLifecycle();
     if (lifecycle != null) {

@@ -29,6 +29,8 @@ public class YandexMapController:
   }()
   private let mapView: FLYMKMapView
   private var mapLoadedListener: MapLoadedListener?
+  public var imageCache: [String: UIImage] = [:]
+  let placemarkAnimator = PlacemarkAnimator()
 
   public required init(id: Int64, frame: CGRect, registrar: FlutterPluginRegistrar, params: [String: Any]) {
     self.pluginRegistrar = registrar
@@ -105,9 +107,34 @@ public class YandexMapController:
     case "listenMapLoaded":
       listenMapLoaded()
       result(nil)
+    case "cacheBitmaps":
+      cacheBitmaps(call)
+      result(nil)
+    case "uncacheBitmaps":
+      let keys = (call.arguments as! [String: Any])["keys"] as! [String]
+      keys.forEach { imageCache.removeValue(forKey: $0) }
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  public func cacheBitmaps(_ call: FlutterMethodCall) {
+    let images = (call.arguments as! [String: Any])["images"] as! [String: FlutterStandardTypedData]
+
+    for (key, data) in images {
+      if let image = UIImage(data: data.data) {
+        imageCache[key] = image
+      }
+    }
+  }
+
+  func screenPoint(_ point: YMKPoint) -> CGPoint? {
+    guard let screenPoint = mapView.mapWindow.worldToScreen(withWorldPoint: point) else {
+      return nil
+    }
+
+    return CGPoint(x: CGFloat(screenPoint.x), y: CGFloat(screenPoint.y))
   }
 
   public func updateMapObjects(_ call: FlutterMethodCall) {

@@ -18,7 +18,8 @@ class PlacemarkMapObject extends Equatable implements MapObject {
     this.icon,
     this.opacity = 0.5,
     this.direction = 0,
-    this.text
+    this.text,
+    this.transition
   });
 
   /// The geometry of the map object.
@@ -67,6 +68,9 @@ class PlacemarkMapObject extends Equatable implements MapObject {
   /// Text to display with a [PlacemarkMapObject]
   final PlacemarkText? text;
 
+  /// Animation played by the platform once per [PlacemarkTransition.id].
+  final PlacemarkTransition? transition;
+
   PlacemarkMapObject copyWith({
     Point? point,
     double? zIndex,
@@ -80,7 +84,8 @@ class PlacemarkMapObject extends Equatable implements MapObject {
     PlacemarkIcon? icon,
     double? opacity,
     double? direction,
-    PlacemarkText? text
+    PlacemarkText? text,
+    PlacemarkTransition? transition
   }) {
     return PlacemarkMapObject(
       mapId: mapId,
@@ -96,7 +101,8 @@ class PlacemarkMapObject extends Equatable implements MapObject {
       icon: icon ?? this.icon,
       opacity: opacity ?? this.opacity,
       direction: direction ?? this.direction,
-      text: text ?? this.text
+      text: text ?? this.text,
+      transition: transition ?? this.transition
     );
   }
 
@@ -122,7 +128,8 @@ class PlacemarkMapObject extends Equatable implements MapObject {
       icon: icon,
       opacity: opacity,
       direction: direction,
-      text: text
+      text: text,
+      transition: transition
     );
   }
 
@@ -166,7 +173,8 @@ class PlacemarkMapObject extends Equatable implements MapObject {
       'opacity': opacity,
       'direction': direction,
       'icon': icon?.toJson(),
-      'text': text?.toJson()
+      'text': text?.toJson(),
+      'transition': transition?.toJson()
     };
   }
 
@@ -205,7 +213,8 @@ class PlacemarkMapObject extends Equatable implements MapObject {
     opacity,
     direction,
     icon,
-    text
+    text,
+    transition
   ];
 
   @override

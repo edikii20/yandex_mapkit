@@ -89,6 +89,19 @@ class YandexMapController extends ChangeNotifier {
     return await _channel.invokeMethod('setMapStyle', {'style': style});
   }
 
+  /// Decodes images once on the platform side and keeps them under [images] keys.
+  /// Use [BitmapDescriptor.fromCache] to reference them in placemarks.
+  Future<void> cacheBitmaps(Map<String, Uint8List> images) async {
+    if (images.isEmpty) return;
+    await _channel.invokeMethod('cacheBitmaps', {'images': images});
+  }
+
+  /// Drops cached images by keys.
+  Future<void> uncacheBitmaps(List<String> keys) async {
+    if (keys.isEmpty) return;
+    await _channel.invokeMethod('uncacheBitmaps', {'keys': keys});
+  }
+
   /// Changes the map camera position.
   ///
   /// The returned [Future] completes after the change has been made on the platform side.

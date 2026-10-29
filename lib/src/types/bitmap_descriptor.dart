@@ -24,6 +24,14 @@ class BitmapDescriptor extends Equatable {
     });
   }
 
+  /// Creates a [BitmapDescriptor] from an image cached with [YandexMapController.cacheBitmaps].
+  factory BitmapDescriptor.fromCache(String key) {
+    return BitmapDescriptor._({
+      'type': 'fromCache',
+      'key': key
+    });
+  }
+
   Map<String, dynamic> toJson() => _json;
 
   @override
