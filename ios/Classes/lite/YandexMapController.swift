@@ -58,6 +58,10 @@ public class YandexMapController:
     applyMapObjects(params["mapObjects"] as! [String: Any])
   }
 
+  deinit {
+    placemarkAnimator.stop()
+  }
+
   public func view() -> UIView {
     return self.mapView
   }

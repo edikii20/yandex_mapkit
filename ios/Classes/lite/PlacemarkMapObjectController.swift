@@ -208,6 +208,11 @@ class PlacemarkMapObjectController:
 
   @discardableResult
   func step(_ now: CFTimeInterval, apply: Bool = true) -> Bool {
+    guard controller != nil, placemark.isValid else {
+      tracks.removeAll()
+      return false
+    }
+
     var seen = Set<Int>()
 
     for track in tracks {
