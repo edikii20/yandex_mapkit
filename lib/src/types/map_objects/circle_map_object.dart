@@ -188,4 +188,8 @@ class CircleMapObject extends Equatable implements MapObject<CircleMapObject> {
 
   @override
   bool get stringify => true;
+
+  @override
+  // ignore: hash_and_equals
+  int get hashCode => mapId.hashCode;
 }

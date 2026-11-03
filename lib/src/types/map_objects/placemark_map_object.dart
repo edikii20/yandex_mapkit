@@ -219,6 +219,10 @@ class PlacemarkMapObject extends Equatable implements MapObject {
 
   @override
   bool get stringify => true;
+
+  @override
+  // ignore: hash_and_equals
+  int get hashCode => mapId.hashCode;
 }
 
 /// Visual icon of a single [PlacemarkMapObject]
