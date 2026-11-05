@@ -52,6 +52,13 @@ public class PlacemarkMapObjectController
   private ImageProvider frameImage;
   private final List<PlacemarkAnimator.Track> tracks = new ArrayList<>();
   private String transitionId;
+  private float baseDirection = 0;
+  private boolean hasDirection = false;
+  private Float shownDirection;
+  private double directionSpring = 0;
+  private double directionOffset = 0;
+  private double directionVelocity = 0;
+  private double directionTime = -1;
 
   @SuppressWarnings({"ConstantConditions"})
   public PlacemarkMapObjectController(
@@ -105,7 +112,11 @@ public class PlacemarkMapObjectController
     placemark.setZIndex(((Double) params.get("zIndex")).floatValue());
     placemark.setDraggable((Boolean) params.get("isDraggable"));
     baseOpacity = ((Double) params.get("opacity")).floatValue();
-    placemark.setDirection(((Double) params.get("direction")).floatValue());
+    Object spring = params.get("directionSpring");
+    setDirection(
+      ((Double) params.get("direction")).floatValue(),
+      spring != null ? ((Number) spring).doubleValue() : 0
+    );
 
     setText(((Map<String, Object>) params.get("text")));
     setIcon(((Map<String, Object>) params.get("icon")));
@@ -207,6 +218,47 @@ public class PlacemarkMapObjectController
     return defaultImage;
   }
 
+  private void setDirection(float direction, double spring) {
+    directionSpring = spring;
+
+    if (spring <= 0 || !hasDirection) {
+      directionOffset = 0;
+      directionVelocity = 0;
+    } else if (direction != baseDirection) {
+      directionOffset = shortestAngle(baseDirection + directionOffset - direction);
+      directionTime = -1;
+      YandexMapController mapController = controller.get();
+      if (mapController != null) {
+        mapController.placemarkAnimator.add(this);
+      }
+    }
+
+    baseDirection = direction;
+    hasDirection = true;
+  }
+
+  private boolean stepDirection(double now) {
+    if (directionSpring <= 0 || (Math.abs(directionOffset) <= 0.05 && Math.abs(directionVelocity) <= 0.5)) {
+      directionOffset = 0;
+      directionVelocity = 0;
+      directionTime = -1;
+      return false;
+    }
+
+    double dt = directionTime < 0 ? 0 : Math.min(0.05, Math.max(0, now - directionTime));
+    directionTime = now;
+    double w = directionSpring;
+    directionVelocity += (-w * w * directionOffset - 2 * w * directionVelocity) * dt;
+    directionOffset += directionVelocity * dt;
+
+    return true;
+  }
+
+  private static double shortestAngle(double angle) {
+    double value = (angle + 180) % 360;
+    return (value < 0 ? value + 360 : value) - 180;
+  }
+
   @SuppressWarnings({"unchecked"})
   private void startTransition(Map<String, Object> transition) {
     if (transition == null) {
@@ -293,6 +345,10 @@ public class PlacemarkMapObjectController
       }
     }
 
+    if (stepDirection(now)) {
+      running = true;
+    }
+
     if (apply) {
       applyAnimation();
     }
@@ -328,6 +384,12 @@ public class PlacemarkMapObjectController
   @SuppressWarnings({"ConstantConditions"})
   private void applyAnimation() {
     placemark.setOpacity((float) Math.max(0, Math.min(1, baseOpacity * animOpacity)));
+
+    float direction = baseDirection + (float) directionOffset;
+    if (shownDirection == null || direction != shownDirection) {
+      placemark.setDirection(direction);
+      shownDirection = direction;
+    }
 
     ImageProvider image = frameImage != null ? frameImage : baseImage;
     if (image == null || baseStyle == null) {

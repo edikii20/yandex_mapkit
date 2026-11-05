@@ -21,6 +21,13 @@ class PlacemarkMapObjectController:
   private var frameImage: UIImage?
   private var tracks: [PlacemarkTrack] = []
   private var transitionId: String?
+  private var baseDirection: Float = 0
+  private var hasDirection = false
+  private var shownDirection: Float?
+  private var directionSpring = 0.0
+  private var directionOffset = 0.0
+  private var directionVelocity = 0.0
+  private var directionTime: CFTimeInterval?
 
   public required init(
     parent: YMKBaseMapObjectCollection,
@@ -77,7 +84,10 @@ class PlacemarkMapObjectController:
     placemark.zIndex = (params["zIndex"] as! NSNumber).floatValue
     placemark.isDraggable = (params["isDraggable"] as! NSNumber).boolValue
     baseOpacity = (params["opacity"] as! NSNumber).floatValue
-    placemark.direction = (params["direction"] as! NSNumber).floatValue
+    setDirection(
+      (params["direction"] as! NSNumber).floatValue,
+      spring: (params["directionSpring"] as? NSNumber)?.doubleValue ?? 0
+    )
 
     setText(params["text"] as? [String: Any])
     setIcon(params["icon"] as? [String: Any])
@@ -178,6 +188,46 @@ class PlacemarkMapObjectController:
     return defaultImage
   }
 
+  private func setDirection(_ direction: Float, spring: Double) {
+    directionSpring = spring
+
+    if spring <= 0 || !hasDirection {
+      directionOffset = 0
+      directionVelocity = 0
+    } else if direction != baseDirection {
+      directionOffset = Self.shortestAngle(
+        Double(baseDirection) + directionOffset - Double(direction)
+      )
+      directionTime = nil
+      controller?.placemarkAnimator.add(self)
+    }
+
+    baseDirection = direction
+    hasDirection = true
+  }
+
+  private func stepDirection(_ now: CFTimeInterval) -> Bool {
+    guard directionSpring > 0, abs(directionOffset) > 0.05 || abs(directionVelocity) > 0.5 else {
+      directionOffset = 0
+      directionVelocity = 0
+      directionTime = nil
+      return false
+    }
+
+    let dt = min(0.05, max(0, now - (directionTime ?? now)))
+    directionTime = now
+    let w = directionSpring
+    directionVelocity += (-w * w * directionOffset - 2 * w * directionVelocity) * dt
+    directionOffset += directionVelocity * dt
+
+    return true
+  }
+
+  private static func shortestAngle(_ angle: Double) -> Double {
+    let value = (angle + 180).truncatingRemainder(dividingBy: 360)
+    return (value < 0 ? value + 360 : value) - 180
+  }
+
   private func startTransition(_ transition: [String: Any]?) {
     guard let transition = transition, let id = transition["id"] as? String, id != transitionId else {
       return
@@ -242,11 +292,13 @@ class PlacemarkMapObjectController:
 
     tracks.removeAll { $0.isFinished(now) && !($0.property == PlacemarkTrack.offset && $0.toPoint != nil) }
 
+    let isTurning = stepDirection(now)
+
     if apply {
       applyAnimation()
     }
 
-    return tracks.contains { !$0.isFinished(now) }
+    return isTurning || tracks.contains { !$0.isFinished(now) }
   }
 
   private func offset(_ track: PlacemarkTrack, _ p: Double) -> CGPoint {
@@ -267,6 +319,12 @@ class PlacemarkMapObjectController:
 
   private func applyAnimation() {
     placemark.opacity = max(0, min(1, baseOpacity * Float(animOpacity)))
+
+    let direction = baseDirection + Float(directionOffset)
+    if direction != shownDirection {
+      placemark.direction = direction
+      shownDirection = direction
+    }
 
     guard let image = frameImage ?? baseImage, let baseStyle = baseStyle else {
       return

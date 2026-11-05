@@ -18,6 +18,7 @@ class PlacemarkMapObject extends Equatable implements MapObject {
     this.icon,
     this.opacity = 0.5,
     this.direction = 0,
+    this.directionSpring = 0,
     this.text,
     this.transition
   });
@@ -65,6 +66,12 @@ class PlacemarkMapObject extends Equatable implements MapObject {
   /// Measured in degrees.
   final double direction;
 
+  /// Stiffness of the critically damped spring that turns the placemark
+  /// towards a new [direction], in radians per second.
+  /// The platform keeps the shown angle and its speed when the target changes.
+  /// 0 applies a new direction at once.
+  final double directionSpring;
+
   /// Text to display with a [PlacemarkMapObject]
   final PlacemarkText? text;
 
@@ -84,6 +91,7 @@ class PlacemarkMapObject extends Equatable implements MapObject {
     PlacemarkIcon? icon,
     double? opacity,
     double? direction,
+    double? directionSpring,
     PlacemarkText? text,
     PlacemarkTransition? transition
   }) {
@@ -101,6 +109,7 @@ class PlacemarkMapObject extends Equatable implements MapObject {
       icon: icon ?? this.icon,
       opacity: opacity ?? this.opacity,
       direction: direction ?? this.direction,
+      directionSpring: directionSpring ?? this.directionSpring,
       text: text ?? this.text,
       transition: transition ?? this.transition
     );
@@ -128,6 +137,7 @@ class PlacemarkMapObject extends Equatable implements MapObject {
       icon: icon,
       opacity: opacity,
       direction: direction,
+      directionSpring: directionSpring,
       text: text,
       transition: transition
     );
@@ -172,6 +182,7 @@ class PlacemarkMapObject extends Equatable implements MapObject {
       'isDraggable': isDraggable,
       'opacity': opacity,
       'direction': direction,
+      'directionSpring': directionSpring,
       'icon': icon?.toJson(),
       'text': text?.toJson(),
       'transition': transition?.toJson()
@@ -212,6 +223,7 @@ class PlacemarkMapObject extends Equatable implements MapObject {
     isDraggable,
     opacity,
     direction,
+    directionSpring,
     icon,
     text,
     transition
