@@ -26,6 +26,7 @@ import com.yandex.mapkit.layers.GeoObjectTapListener;
 import com.yandex.mapkit.layers.ObjectEvent;
 import com.yandex.mapkit.logo.Alignment;
 import com.yandex.mapkit.logo.HorizontalAlignment;
+import com.yandex.mapkit.logo.Padding;
 import com.yandex.mapkit.logo.VerticalAlignment;
 import com.yandex.mapkit.map.CameraPosition;
 import com.yandex.mapkit.map.GeoObjectSelectionMetadata;
@@ -659,6 +660,10 @@ public class YandexMapController implements
       applyAlignLogo((Map<String, Object>) params.get("logoAlignment"));
     }
 
+    if (params.get("logoPadding") != null) {
+      applyLogoPadding((Map<String, Object>) params.get("logoPadding"));
+    }
+
     if (params.containsKey("focusRect")) {
       applyFocusRect((Map<String, Object>) params.get("focusRect"));
     }
@@ -694,6 +699,14 @@ public class YandexMapController implements
       VerticalAlignment.values()[(Integer) params.get("vertical")]
     );
     mapView.getMapWindow().getMap().getLogo().setAlignment(logoPosition);
+  }
+
+  @SuppressWarnings({"ConstantConditions"})
+  private void applyLogoPadding(Map<String, Object> params) {
+    float scale = mapView.getMapWindow().getScaleFactor();
+    int horizontal = Math.max(0, Math.round(((Number) params.get("horizontal")).floatValue() * scale));
+    int vertical = Math.max(0, Math.round(((Number) params.get("vertical")).floatValue() * scale));
+    mapView.getMapWindow().getMap().getLogo().setPadding(new Padding(horizontal, vertical));
   }
 
   private void applyFocusRect(Map<String, Object> params) {

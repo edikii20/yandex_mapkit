@@ -30,6 +30,36 @@ class MapAlignment extends Equatable {
   }
 }
 
+/// Map logo padding in logical pixels from the aligned edges.
+class MapLogoPadding extends Equatable {
+  const MapLogoPadding({
+    this.horizontal = 0,
+    this.vertical = 0,
+  });
+
+  /// Padding from the left or right edge.
+  final double horizontal;
+
+  /// Padding from the top or bottom edge.
+  final double vertical;
+
+  @override
+  List<Object> get props => <Object>[
+    horizontal,
+    vertical,
+  ];
+
+  @override
+  bool get stringify => true;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'horizontal': horizontal,
+      'vertical': vertical
+    };
+  }
+}
+
 /// Horizontal logo alignment.
 enum HorizontalAlignment {
   left,
